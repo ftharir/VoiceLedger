@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env.*
+venv
+.venv
+backend/venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.vscode
+.idea
+README.md
+storage/*
+!storage/audio/.gitkeep
+!storage/references/.gitkeep
