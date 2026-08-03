@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1.api import api_router
 from backend.app.core.config import settings
 from backend.app.db.session import get_db
 
@@ -11,6 +12,9 @@ app = FastAPI(
     version="0.1.0",
     debug=settings.DEBUG,
 )
+
+# اتصال روتر API نسخه ۱
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Health"])
