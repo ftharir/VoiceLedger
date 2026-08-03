@@ -6,6 +6,7 @@ from backend.app.crud import crud_user, crud_voice_report
 from backend.app.db.session import AsyncSessionLocal
 from backend.app.schemas import UserCreate, VoiceReportCreate, VoiceReportUpdate
 from backend.app.services.voice_service import voice_service
+from backend.app.services.stt_service import stt_service
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """دریافت وویس ارسال شده، ثبت در دیتابیس و دانلود فایل صوتی"""
+    """دریافت وویس ارسال شده، ثبت در دیتابیس، دانلود فایل صوتی و استخراج متن"""
     if not update.message or not update.message.voice or not update.effective_user:
         return
 
@@ -74,20 +75,35 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 report_id=db_report.id,
             )
 
-            # ۴. آپدیت مسیر فایل ذخیره‌شده در دیتابیس
-            update_data = VoiceReportUpdate(file_path=local_path, status="downloaded")
-            await crud_voice_report.update(db, db_obj=db_report, obj_in=update_data)
+            # ۴. آپدیت وضعیت به دانلود شده
+            await crud_voice_report.update(
+                db, db_obj=db_report, obj_in=VoiceReportUpdate(file_path=local_path, status="downloaded")
+            )
 
-            # ۵. اطلاع‌رسانی موفقیت دانلود به کاربر
+            # اطلاع‌رسانی مرحله تبدیل گفتار به متن
+            await processing_msg.edit_text("⚙️ فایل صوتی ذخیره شد. در حال استخراج متن گزارش (Speech-to-Text)...")
+
+            # ۵. تبدیل گفتار به متن
+            transcription_text = await stt_service.transcribe_audio(local_path)
+
+            # ۶. آپدیت متن و وضعیت نهایی در دیتابیس
+            final_update = VoiceReportUpdate(
+                transcription=transcription_text,
+                status="completed"
+            )
+            await crud_voice_report.update(db, db_obj=db_report, obj_in=final_update)
+
+            # ۷. ارسال متن استخراج شده به کاربر در بله
             success_text = (
-                f"✅ **گزارش صوتی دریافت و ذخیره شد**\n\n"
+                f"✅ **گزارش صوتی با موفقیت پردازش شد**\n\n"
                 f"🆔 **شناسه پیگیری:** `{db_report.id}`\n"
                 f"⏱ **مدت زمان:** {voice.duration} ثانیه\n"
-                f"📁 **وضعیت:** ذخیره‌شده در سیستم (آماده تبدیل به متن)\n\n"
-                f"به محض استخراج متن، نتیجه نهایی ارسال خواهد شد."
+                f"📊 **وضعیت:** تکمیل شده (Completed)\n\n"
+                f"📝 **متن استخراج‌شده:**\n"
+                f"« {transcription_text} »"
             )
             await processing_msg.edit_text(success_text, parse_mode="Markdown")
 
         except Exception as e:
             logger.error(f"خطا در پردازش وویس: {e}", exc_info=True)
-            await processing_msg.edit_text("❌ متأسفانه در ذخیره‌سازی فایل صوتی خطایی رخ داد. لطفاً دوباره تلاش کنید.")
+            await processing_msg.edit_text("❌ متأسفانه در پردازش گزارش صوتی خطایی رخ داد. لطفاً دوباره تلاش کنید.")
