@@ -35,7 +35,7 @@ def create_bot_application():
 
     return app
 
-
+ 
 if __name__ == "__main__":
     logger.info("در حال راه‌اندازی ربات بله...")
     bot_app = create_bot_application()
