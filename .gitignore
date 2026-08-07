@@ -56,4 +56,9 @@ Thumbs.db
 storage/audio/*
 !storage/audio/.gitkeep
 storage/references/*
-!storage/references/.gitkeep
+!storage/references/.gitkeep 
+venv/ 
+venv_old/ 
+backend/venv/ 
+backend/venv_old/ 
+.env 
