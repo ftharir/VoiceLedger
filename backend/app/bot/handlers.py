@@ -11,55 +11,89 @@ from backend.app.services.stt_service import stt_service
 logger = logging.getLogger(__name__)
 
 
+async def get_or_create_bot_user(db, tg_user):
+    """تابع کمکی جهت ثبت/بازیابی کاربر و چک کردن دسترسی"""
+    user_in = UserCreate(
+        bale_user_id=tg_user.id,
+        username=tg_user.username,
+        first_name=tg_user.first_name,
+        last_name=tg_user.last_name,
+    )
+    return await crud_user.get_or_create(db, obj_in=user_in)
+
+
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """پاسخ به دستور /start"""
-    user = update.effective_user
-    first_name = user.first_name if user else "کاربر"
+    if not update.message or not update.effective_user:
+        return
 
-    welcome_message = (
-        f"سلام {first_name} عزیز! 👋\n\n"
-        "به سامانه ثبت گزارش‌های صوتی خوش آمدید.\n"
-        "شما می‌توانید گزارش‌های صوتی خود را ارسال کنید تا به‌صورت خودکار متن‌کاوی و ذخیره شوند.\n\n"
-        "برای راهنمایی بیشتر دستور /help را ارسال کنید."
-    )
+    tg_user = update.effective_user
 
-    if update.message:
+    async with AsyncSessionLocal() as db:
+        db_user = await get_or_create_bot_user(db, tg_user)
+
+        if not db_user.is_approved:
+            await update.message.reply_text(
+                f"سلام {tg_user.first_name} عزیز! 👋\n\n"
+                "🔒 حساب کاربری شما ثبت شده اما هنوز توسط مدیر سیستم **تایید نشده است**.\n"
+                "لطفاً منتظر تایید مدیر بمانید."
+            )
+            return
+
+        welcome_message = (
+            f"سلام {tg_user.first_name} عزیز! 👋\n\n"
+            "به سامانه ثبت گزارش‌های صوتی خوش آمدید.\n"
+            "شما می‌توانید گزارش‌های صوتی خود را ارسال کنید تا به‌صورت خودکار متن‌کاوی و ذخیره شوند.\n\n"
+            "برای راهنمایی بیشتر دستور /help را ارسال کنید."
+        )
         await update.message.reply_text(welcome_message)
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """پاسخ به دستور /help"""
-    help_text = (
-        "راهنمای استفاده از ربات: 📌\n\n"
-        "۱. یک وویس (Voice) حاوی گزارش کاری خود ضبط و ارسال کنید.\n"
-        "۲. سیستم به‌صورت خودکار صوت شما را پردازش کرده و متنش را استخراج می‌کند.\n"
-        "۳. گزارش شما در پایگاه داده ثبت خواهد شد."
-    )
-    if update.message:
+    if not update.message or not update.effective_user:
+        return
+
+    tg_user = update.effective_user
+
+    async with AsyncSessionLocal() as db:
+        db_user = await get_or_create_bot_user(db, tg_user)
+
+        if not db_user.is_approved:
+            await update.message.reply_text("🔒 شما دسترسی به بخش‌های ربات را ندارید. حساب شما در انتظار تایید است.")
+            return
+
+        help_text = (
+            "راهنمای استفاده از ربات: 📌\n\n"
+            "۱. یک وویس (Voice) حاوی گزارش کاری خود ضبط و ارسال کنید.\n"
+            "۲. سیستم به‌صورت خودکار صوت شما را پردازش کرده و متنش را استخراج می‌کند.\n"
+            "۳. گزارش شما در پایگاه داده ثبت خواهد شد."
+        )
         await update.message.reply_text(help_text)
 
 
 async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """دریافت وویس ارسال شده، ثبت در دیتابیس، دانلود فایل صوتی و استخراج متن"""
+    """دریافت وویس ارسال شده، بررسی دسترسی، ثبت در دیتابیس، دانلود فایل صوتی و استخراج متن"""
     if not update.message or not update.message.voice or not update.effective_user:
         return
 
     tg_user = update.effective_user
     voice = update.message.voice
 
-    processing_msg = await update.message.reply_text("🎙 گزارش صوتی شما دریافت شد. در حال ثبت و دریافت فایل...")
-
     async with AsyncSessionLocal() as db:
-        try:
-            # ۱. ثبت یا بازیابی کاربر
-            user_in = UserCreate(
-                bale_user_id=tg_user.id,
-                username=tg_user.username,
-                first_name=tg_user.first_name,
-                last_name=tg_user.last_name,
-            )
-            db_user = await crud_user.get_or_create(db, obj_in=user_in)
+        # ۱. بررسی احراز هویت و دسترسی کاربر
+        db_user = await get_or_create_bot_user(db, tg_user)
 
+        if not db_user.is_approved:
+            await update.message.reply_text(
+                "🔒 **خطای دسترسی:**\n"
+                "حساب کاربری شما هنوز تایید نشده است و امکان ثبت گزارش صوتی را ندارید."
+            )
+            return
+
+        processing_msg = await update.message.reply_text("🎙 گزارش صوتی شما دریافت شد. در حال ثبت و دریافت فایل...")
+
+        try:
             # ۲. ساخت رکورد اولیه گزارش صوتی
             report_in = VoiceReportCreate(
                 user_id=db_user.id,

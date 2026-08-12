@@ -48,7 +48,7 @@ class User(Base):
     )
 
     # ارتباط یک-به-چند با گزارش‌های وویس
-    reports: Mapped[List["VoiceReport"]] = relationship("VoiceReport", back_populates="user", cascade="all, delete-orphan")
-
+    voice_reports: Mapped[List["VoiceReport"]] = relationship("VoiceReport", back_populates="user", cascade="all, delete-orphan")
+    
     def __repr__(self) -> str:
         return f"<User id={self.id} bale_id={self.bale_user_id} role={self.role} approved={self.is_approved}>"
