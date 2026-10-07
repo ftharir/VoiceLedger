@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "BaleVoiceReports"
+    APP_NAME: str = "VoiceLedger"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 

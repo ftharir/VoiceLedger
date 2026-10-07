@@ -1,4 +1,4 @@
-# BaleVoiceReports
+# VoiceLedger
 
 > **Turn spoken work reports into a searchable knowledge base.**
 > A Bale messenger bot and REST API that receives voice messages from organization members, transcribes them to Persian text, and stores them in a multi-domain PostgreSQL knowledge base.
@@ -30,7 +30,7 @@
 
 ## Overview
 
-In many organizations, daily reports are given verbally and then lost. BaleVoiceReports lets a member simply record a voice message in Bale. The system registers the sender, checks that an admin has approved them, downloads the audio, converts speech to Persian text, and saves the result as a structured entry in a knowledge base grouped by **domain** (e.g. `technical`).
+In many organizations, daily reports are given verbally and then lost. VoiceLedger lets a member simply record a voice message in Bale. The system registers the sender, checks that an admin has approved them, downloads the audio, converts speech to Persian text, and saves the result as a structured entry in a knowledge base grouped by **domain** (e.g. `technical`).
 
 ## Architecture
 
