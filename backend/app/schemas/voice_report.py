@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,6 +11,7 @@ class VoiceReportBase(BaseModel):
 
 class VoiceReportCreate(VoiceReportBase):
     user_id: int
+    domain_id: int
 
 
 class VoiceReportUpdate(BaseModel):
@@ -21,6 +23,7 @@ class VoiceReportUpdate(BaseModel):
 class VoiceReportInDBBase(VoiceReportBase):
     id: int
     user_id: int
+    domain_id: int
     file_path: Optional[str] = None
     transcription: Optional[str] = None
     status: str

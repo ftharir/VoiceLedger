@@ -31,7 +31,7 @@ class Settings(BaseSettings):
                 host=self.POSTGRES_SERVER,
                 port=self.POSTGRES_PORT,
                 path=self.POSTGRES_DB,
-            )
+            ) 
         )
 
     model_config = SettingsConfigDict(
@@ -43,3 +43,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
