@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    BALE_BOT_TOKEN: str = " REMOVED:REMOVED_TOKEN"
+    BALE_BOT_TOKEN: str = ""
 
     POSTGRES_SERVER: str = "127.0.0.1"
     POSTGRES_PORT: int = 5432

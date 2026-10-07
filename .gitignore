@@ -62,3 +62,8 @@ venv_old/
 backend/venv/ 
 backend/venv_old/ 
 .env 
+
+# Runtime data and local artifacts
+backend/storage/
+backups/
+project_dump.txt
